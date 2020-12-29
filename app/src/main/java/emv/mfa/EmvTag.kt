@@ -4,6 +4,7 @@ package emv.mfa
 // also see EMV 4.3 Book 1 B1 Data Elements by Name
 enum class EmvTag(val tag: Int) {
     AID(0x4F),
+    AIP(0x82), // Application Interchange Profile
     APP_LABEL(0x50),
     APP_FILE_LOCATOR(0x94),
 
@@ -21,6 +22,8 @@ enum class EmvTag(val tag: Int) {
 
     KERNEL_IDENTITY(0x9F2A),
     PDOL(0x9F38), // Processing Options Data Object List (PDOL)
+    // DDOL(0x9F49), // Dynamic Data Authentication Data Object List (DDOL)
+    DDOL(0xDF25), // is it really DF25? https://idtechproducts.com/technical-post/emv-device-configuration-essentials/
 
     SIGNED_DDA(0x9F4B), // SIGNED_DYNAMIC_APPLICATION_DATA
 

@@ -6,6 +6,7 @@ import java.security.SecureRandom
 import java.util.*
 import kotlin.collections.ArrayList
 import emv.mfa.EmvTag.*
+import java.math.BigInteger
 
 class EmvReader(private val handle: IsoDep) {
     var aid: ByteArray = ByteArray(0)
@@ -13,6 +14,7 @@ class EmvReader(private val handle: IsoDep) {
     var afsList = ArrayList<AppFileLocator>()
     val cardInfo = CardInfo()
     var pdol : TlvData? = null
+    var aip = AppInterchangeProfile(0.toByte(), 0.toByte())
 
     fun process() {
         readAidAndLabel()
@@ -32,6 +34,8 @@ class EmvReader(private val handle: IsoDep) {
         apdu.le = 0
         val req = apdu.toBytes()
         val resp = handle.transceive(req);
+        val bi = BigInteger(1, resp)
+        val bis = bi.toString(16)
         assertStatus(resp)
         val data = TlvDecoder.decodeAll(resp.sliceArray(0..resp.size-3))
         val aidTlv = data.find { it.tag == AID.tag || it.tag == KERNEL_IDENTITY.tag }
@@ -42,6 +46,9 @@ class EmvReader(private val handle: IsoDep) {
         if (labelTvl != null) {
             label = String(labelTvl.data, StandardCharsets.UTF_8)
         }
+
+        val ddol = data.find { it.tag == DDOL.tag }
+        val xx = 100
     }
 
     fun selectAid(_aid: ByteArray) {
@@ -51,10 +58,15 @@ class EmvReader(private val handle: IsoDep) {
         apdu.le = 0
         val req = apdu.toBytes()
         val resp = handle.transceive(req)
+        val bi = BigInteger(1, resp)
+        val bis = bi.toString(16)
         assertStatus(resp)
         val data = TlvDecoder.decodeAll(resp.sliceArray(0..resp.size-3))
 
         pdol = data.find { it.tag == PDOL.tag }
+
+        val ddol = data.find { it.tag == DDOL.tag }
+        val xx = 100
     }
 
     fun getAfls() {
@@ -68,14 +80,27 @@ class EmvReader(private val handle: IsoDep) {
         }
 
         val send = TlvEncoder.encode(TlvData(0x83, allData))
+        //val send = ByteArray(0)
         // GPO command
         val apdu = CommandApdu(0x80, 0xA8, 0x00, 0x00)
         apdu.data = send
         apdu.le = 0
         val req = apdu.toBytes()
         val resp = handle.transceive(req)
+        val bi = BigInteger(1, resp)
+        val bis = bi.toString(16)
         assertStatus(resp)
         val data = TlvDecoder.decodeAll(resp.sliceArray(0..resp.size-3))
+        val ddol = data.find { it.tag == DDOL.tag }
+
+        val aipTlv = data.find { it.tag == AIP.tag }
+        if ( aipTlv != null && aipTlv?.data.count() == 2 ) {
+            aip = AppInterchangeProfile(aipTlv.data[0], aipTlv.data[1])
+            //if (!aip.isDDA()) {
+            //    throw IllegalArgumentException("DDA not supported")
+            //}
+        }
+
         val aflTlv = data.find { it.tag == APP_FILE_LOCATOR.tag }
         if ( null != aflTlv ) {
             val count = aflTlv.data.size / 4
@@ -83,6 +108,8 @@ class EmvReader(private val handle: IsoDep) {
                 afsList.add(AppFileLocator(aflTlv.data.sliceArray(i*4 until (i+1)*4)))
             }
         }
+        val ddol2 = data.find { it.tag == DDOL.tag }
+        val xx = 100
         val x = 100
     }
 

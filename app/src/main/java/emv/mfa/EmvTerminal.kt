@@ -49,16 +49,16 @@ object EmvTerminal {
             byteArrayOf(0x22).copyInto(item.data)
         } else if (item.tag === TERMINAL_CAPABILITIES.tag) {
             // EMV 4.3 Book 4 A2 Terminal Capabilities
-            // first byte: Manual key entry
-            // second byte: paper signature + No CVM required
-            // third byte: SDA + DDA
-            byteArrayOf(0x80.toByte(), 0x28.toByte(), 0xC0.toByte()).copyInto(item.data)
+            // first byte: Manual key entry + magnetic strip + IC with contacts
+            // second byte: Plaintext PIN for ICC verification + paper signature
+            // third byte: SDA + DDA + Card Capture + CDA
+            byteArrayOf(0xE0.toByte(), 0xA0.toByte(), 0xE8.toByte()).copyInto(item.data)
         } else if (item.tag === ADDITIONAL_TERMINAL_CAPABILITIES.tag) {
             // see EMV 4.3 Book 3 Table 33: Data Elements Dictionary
             // format is binary, total 5 bytes
             // also see EMV 4.3 Book 4 A3 Additional Terminal Capabilities
             // first byte: Cash + Service + Inquiry + Transfer + Payment
-            byteArrayOf(0xBE.toByte(), 0, 0, 0, 0).copyInto(item.data)
+            byteArrayOf(0xBE.toByte(), 0, 0xB0.toByte(), 0x50.toByte(), 0x05.toByte()).copyInto(item.data)
         } else if (item.tag === DS_REQUESTED_OPERATOR_ID.tag) {
             // `val` = BytesUtils.fromString("7345123215904501")
         } else if (item.tag === UNPREDICTABLE_NUMBER.tag) {
