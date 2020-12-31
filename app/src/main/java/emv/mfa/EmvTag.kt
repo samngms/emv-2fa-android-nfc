@@ -22,8 +22,8 @@ enum class EmvTag(val tag: Int) {
 
     KERNEL_IDENTITY(0x9F2A),
     PDOL(0x9F38), // Processing Options Data Object List (PDOL)
-    // DDOL(0x9F49), // Dynamic Data Authentication Data Object List (DDOL)
-    DDOL(0xDF25), // is it really DF25? https://idtechproducts.com/technical-post/emv-device-configuration-essentials/
+    DDOL(0x9F49), // Dynamic Data Authentication Data Object List (DDOL)
+    DDOL2(0xDF25), // is it really DF25? https://idtechproducts.com/technical-post/emv-device-configuration-essentials/
 
     SIGNED_DDA(0x9F4B), // SIGNED_DYNAMIC_APPLICATION_DATA
 

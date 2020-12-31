@@ -15,9 +15,6 @@ class RootCert : BaseCert() {
     @Json(name ="RID List")
     var rid : String? = null
 
-    @Json(name ="Key length")
-    var keyLen: Int = -1
-
     @Json(name ="SHA1")
     var sha1: String? = null
 

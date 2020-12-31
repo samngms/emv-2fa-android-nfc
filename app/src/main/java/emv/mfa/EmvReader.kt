@@ -15,6 +15,9 @@ class EmvReader(private val handle: IsoDep) {
     val cardInfo = CardInfo()
     var pdol : TlvData? = null
     var aip = AppInterchangeProfile(0.toByte(), 0.toByte())
+    var sdda : TlvData? = null
+    var cardAuthRelData : TlvData? = null
+    var randomNumber: ByteArray = ByteArray(4)
 
     fun process() {
         readAidAndLabel()
@@ -48,6 +51,7 @@ class EmvReader(private val handle: IsoDep) {
         }
 
         val ddol = data.find { it.tag == DDOL.tag }
+        val ddol2 = data.find { it.tag == DDOL2.tag }
         val xx = 100
     }
 
@@ -66,6 +70,7 @@ class EmvReader(private val handle: IsoDep) {
         pdol = data.find { it.tag == PDOL.tag }
 
         val ddol = data.find { it.tag == DDOL.tag }
+        val ddol2 = data.find { it.tag == DDOL2.tag }
         val xx = 100
     }
 
@@ -76,6 +81,9 @@ class EmvReader(private val handle: IsoDep) {
             for(item in list) {
                 EmvTerminal.handle(item)
                 allData += item.data
+                if (item.tag === UNPREDICTABLE_NUMBER.tag) {
+                    item.data.copyInto(randomNumber)
+                }
             }
         }
 
@@ -91,7 +99,9 @@ class EmvReader(private val handle: IsoDep) {
         val bis = bi.toString(16)
         assertStatus(resp)
         val data = TlvDecoder.decodeAll(resp.sliceArray(0..resp.size-3))
+        sdda = data.find { it.tag == SIGNED_DDA.tag }
         val ddol = data.find { it.tag == DDOL.tag }
+        val ddol2 = data.find { it.tag == DDOL2.tag }
 
         val aipTlv = data.find { it.tag == AIP.tag }
         if ( aipTlv != null && aipTlv?.data.count() == 2 ) {
@@ -108,7 +118,8 @@ class EmvReader(private val handle: IsoDep) {
                 afsList.add(AppFileLocator(aflTlv.data.sliceArray(i*4 until (i+1)*4)))
             }
         }
-        val ddol2 = data.find { it.tag == DDOL.tag }
+        val ddol21 = data.find { it.tag == DDOL.tag }
+        val ddol22 = data.find { it.tag == DDOL2.tag }
         val xx = 100
         val x = 100
     }
@@ -182,24 +193,35 @@ class EmvReader(private val handle: IsoDep) {
         }
 
         cardInfo.parseCertificates()
+
+        cardAuthRelData = files.find { it.tag == 0x9F69 }
+
         val x = 100
     }
 
     fun dda() {
-        // DDA command
-        val apdu = CommandApdu(0x00, 0x88, 0x00, 0x00)
-        val random = ByteArray(4)
-        SecureRandom.getInstanceStrong().nextBytes(random)
-        apdu.data = random
-        apdu.le = 0
-        val req = apdu.toBytes()
-        val resp = handle.transceive(req)
-        assertStatus(resp)
-        val data = TlvDecoder.decodeAll(resp.sliceArray(0..resp.size-3))
-        // SIGNED_DYNAMIC_APPLICATION_DATA
-        val ddaTlv = data.find { it.tag == SIGNED_DDA.tag }
-
-        val ok = cardInfo.authenticate(apdu.data!!, ddaTlv?.data!!)
+        // for VISA paywave, the DDA is generated during GOP (and DDA is called fDDA)
+        val ok = if (null != sdda && null != cardAuthRelData) {
+            val amountAuth = ByteArray(6)
+            val transCurrencyCode = byteArrayOf(Util.to4bitNumbers(CurrencyCode.USD.code/100), Util.to4bitNumbers(CurrencyCode.USD.code%100))
+            val signData = randomNumber + amountAuth + transCurrencyCode//+ cardAuthRelData?.data!!
+            val bi = BigInteger(1, sdda?.data!!)
+            val bis = bi.toString(16)
+            cardInfo.authenticate(signData, sdda?.data!!)
+        } else {
+            // traditional DDA command
+            val apdu = CommandApdu(0x00, 0x88, 0x00, 0x00)
+            val random = ByteArray(4)
+            apdu.data = random
+            apdu.le = 0
+            val req = apdu.toBytes()
+            val resp = handle.transceive(req)
+            assertStatus(resp)
+            val data = TlvDecoder.decodeAll(resp.sliceArray(0..resp.size - 3))
+            // SIGNED_DYNAMIC_APPLICATION_DATA
+            val ddaTlv = data.find { it.tag == SIGNED_DDA.tag }
+            cardInfo.authenticate(apdu.data!!, ddaTlv?.data!!)
+        }
         val x = 100
     }
 

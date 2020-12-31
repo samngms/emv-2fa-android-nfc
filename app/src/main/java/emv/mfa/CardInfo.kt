@@ -29,6 +29,14 @@ class CardInfo {
         }
     }
 
+    fun getCaCertKeyLen(): Int {
+        return if (null == caCert) {
+            0
+        } else {
+            caCert?.keyLen!! / 8
+        }
+    }
+
     // the parser is according to EMV 4.3 Book 2, section 6.3, Table 13 and section 6.4, Table 14
     private fun parseCert(parentCert: BaseCert, paringIssuerData: Boolean, signedCertData : ByteArray, pubKeyRemainder: ByteArray?, exponent: ByteArray) : PublicCert {
         val mod = BigInteger(parentCert.modulus, 16)
@@ -69,6 +77,7 @@ class CardInfo {
         cert.pubKeyAlgo = certData[i++].toInt() and 0xFF
 
         val pubKeyLen = certData[i++].toInt() and 0xFF
+        cert.keyLen = pubKeyLen * 8
         val pubKeyExpLen = certData[i++].toInt() and 0xFF
 
         var modulus = ByteArray(0)
@@ -99,21 +108,39 @@ class CardInfo {
         return cert
     }
 
-    fun authenticate(challenge: ByteArray, ddaRespSigned: ByteArray) : Boolean {
+    // Refer to EMV 4.3 Book 2 section 6.5 table 15
+    fun authenticate(challenge: ByteArray, ddaRespSigned: ByteArray) {
         val mod = BigInteger(iccCert?.modulus, 16)
         val exp = BigInteger(iccCert?.exponent, 16)
         val m = BigInteger(1, ddaRespSigned)
         // raise signedCertData to the power of exp again (mod modulus), it will be the original data again
         val ddaResp = m.modPow(exp, mod).toByteArray()
 
-        val md = MessageDigest.getInstance("SHA-1")
-        val xx = ddaResp.sliceArray(1..ddaResp.size-22)
-        md.update(xx)
-        md.update(challenge)
-        val expected = md.digest()
+        if ( ddaResp.size != iccCert?.keyLen!!/8 ) throw IllegalArgumentException("Invalid DDA signature size")
 
-        val hash = ddaResp.sliceArray(ddaResp.size-21..ddaResp.size-2)
-        return expected != hash
+        if (0x6A != ddaResp[0].toInt()) throw IllegalArgumentException("Invalid DDA signature header")
+        if (0xBC.toByte() != ddaResp[ddaResp.size-1]) throw IllegalArgumentException("Invalid DDA signature trailer")
+
+        if (0x05 == ddaResp[1].toInt()) {
+            if ( 0x01 != ddaResp[2].toInt() ) throw IllegalArgumentException("Invalid DDA signature hash algo ")
+            val md = MessageDigest.getInstance("SHA-1")
+
+            val ldd =   ddaResp[3].toInt()
+            if ( ldd < 0 || ldd > (ddaResp.size - 25) ) throw IllegalArgumentException("Invalid DDA signature size")
+
+            val dynamicData = ddaResp.sliceArray(4 until 4+ldd)
+
+            val tmp = ddaResp.sliceArray(1 until ddaResp.size-21)
+            md.update(tmp)
+            md.update(challenge)
+            val expected = md.digest()
+
+            val hash = ddaResp.sliceArray(ddaResp.size-21 until ddaResp.size-1)
+            // expected != hash does not work as in byteArray!?!?
+            if ( !Arrays.equals(expected, hash) ) throw IllegalArgumentException("Invalid signature")
+        } else {
+            throw IllegalArgumentException("Unsupported DDA signature format")
+        }
     }
 
     private fun toInt(data : ByteArray, index: Int, maxCount: Int=4): Int {

@@ -11,6 +11,9 @@ open class BaseCert {
     @Json(name ="Modulus")
     var modulus: String? = null
 
+    @Json(name ="Key length")
+    var keyLen: Int = -1
+
     @Json(name ="Expires")
     @ExpiryDate
     var expires : Date? = null
