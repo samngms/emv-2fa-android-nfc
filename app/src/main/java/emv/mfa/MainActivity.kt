@@ -15,6 +15,7 @@ import emv.mfa.moshi.HexStringAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.util.concurrent.atomic.AtomicInteger
 
 
 class MainActivity : AppCompatActivity() {
@@ -24,6 +25,8 @@ class MainActivity : AppCompatActivity() {
     val INTENT_FILTER = arrayOf(IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED))
 
     val TECH_LIST = arrayOf(arrayOf(IsoDep::class.java.name))
+
+    val counter = AtomicInteger(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState);
@@ -49,10 +52,25 @@ class MainActivity : AppCompatActivity() {
             val reader = EmvReader(handle)
             try {
                 reader.process()
+                var s = "Task: ${counter.incrementAndGet()}\n"
+                s += "Card: ${reader.label}\n"
+                s += "CA Cert: ${reader.cardInfo.caCert?.modulus?.substring(0..8)}\n"
+                s += "Issuer Cert: ${reader.cardInfo.issuerCert?.modulus?.substring(0..8)}\n"
+                s += "ICC Cert: ${reader.cardInfo.iccCert?.modulus?.substring(0..8)}\n"
+                s += "Random: ${Util.toHex(reader.randomNumber)}\n"
+                s += "Result: OK"
+                findViewById<TextView>(R.id.my_text).text = s
             } catch (e: Exception) {
+                var s = "Task: ${counter.incrementAndGet()}\n"
+                s += "Card: ${reader.label}\n"
+                s += "CA Cert: ${reader.cardInfo.caCert?.modulus?.substring(0..8)}\n"
+                s += "Issuer Cert: ${reader.cardInfo.issuerCert?.modulus?.substring(0..8)}\n"
+                s += "ICC Cert: ${reader.cardInfo.iccCert?.modulus?.substring(0..8)}\n"
+                s += "Random: ${Util.toHex(reader.randomNumber)}\n"
+                s += "Error: ${e.localizedMessage}"
+                findViewById<TextView>(R.id.my_text).text = s
                 Log.e("Main", "Error", e)
             }
-            findViewById<TextView>(R.id.my_text).text = "Sam Ng";
         }
     }
 

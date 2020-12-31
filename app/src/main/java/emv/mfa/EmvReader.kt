@@ -211,8 +211,8 @@ class EmvReader(private val handle: IsoDep) {
         } else {
             // traditional DDA command
             val apdu = CommandApdu(0x00, 0x88, 0x00, 0x00)
-            val random = ByteArray(4)
-            apdu.data = random
+            SecureRandom().nextBytes(randomNumber)
+            apdu.data = randomNumber
             apdu.le = 0
             val req = apdu.toBytes()
             val resp = handle.transceive(req)
