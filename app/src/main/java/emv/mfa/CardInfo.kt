@@ -121,7 +121,7 @@ class CardInfo {
         if (0x6A != ddaResp[0].toInt()) throw IllegalArgumentException("Invalid DDA signature header")
         if (0xBC.toByte() != ddaResp[ddaResp.size-1]) throw IllegalArgumentException("Invalid DDA signature trailer")
 
-        if (0x05 == ddaResp[1].toInt()) {
+        if (0x05.toByte() == ddaResp[1] || 0x95.toByte() == ddaResp[1]) {
             if ( 0x01 != ddaResp[2].toInt() ) throw IllegalArgumentException("Invalid DDA signature hash algo ")
             val md = MessageDigest.getInstance("SHA-1")
 

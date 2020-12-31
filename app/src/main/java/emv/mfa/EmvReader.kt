@@ -204,7 +204,7 @@ class EmvReader(private val handle: IsoDep) {
         val ok = if (null != sdda && null != cardAuthRelData) {
             val amountAuth = ByteArray(6)
             val transCurrencyCode = byteArrayOf(Util.to4bitNumbers(CurrencyCode.USD.code/100), Util.to4bitNumbers(CurrencyCode.USD.code%100))
-            val signData = randomNumber + amountAuth + transCurrencyCode//+ cardAuthRelData?.data!!
+            val signData = randomNumber + amountAuth + transCurrencyCode + cardAuthRelData?.data!!
             val bi = BigInteger(1, sdda?.data!!)
             val bis = bi.toString(16)
             cardInfo.authenticate(signData, sdda?.data!!)
