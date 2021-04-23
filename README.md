@@ -2,6 +2,8 @@
 
 Using EMV credit/debit card as a 2FA authenticator, via Android NFC communication.
 
+A video demo is avaiable in [HERE](https://youtu.be/gKVcz9QQTvU)
+
 In case you don't know, EMV stands for Europay, MasterCard, and Visa. 
 
 In order to combat fraudulent transactions, EMV supports three card authentication methods
